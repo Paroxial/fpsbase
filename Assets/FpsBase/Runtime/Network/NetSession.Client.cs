@@ -50,6 +50,9 @@ namespace FpsBase
         // Corrections since joining: how often prediction disagreed with the host.
         public int Corrections { get; private set; }
 
+        // The newest round trip to the host in milliseconds, -1 before the first reply.
+        public int PingMs { get; private set; } = -1;
+
         // The server tick remote entities are rendered at, between the snapshots around it.
         private float RenderTick => (float)(serverTick - NetProtocol.InterpolationDelayTicks);
 
@@ -199,6 +202,12 @@ namespace FpsBase
                         case MessageType.Bye:
                             EndSession("Host Ended the Session");
                             return;
+                        case MessageType.Ping:
+                            ReplyToPing(packet, sender);
+                            break;
+                        case MessageType.Pong:
+                            PingMs = ReadRoundTrip(packet);
+                            break;
                     }
                 }
                 catch (FormatException)
@@ -237,6 +246,12 @@ namespace FpsBase
                     writer.Write(PlayerName.Value);
                     socket.Send(writer, hostEndPoint);
                 }
+            }
+
+            if (mode == NetMode.Client && Time.unscaledTime - lastPingTime >= NetProtocol.PingInterval)
+            {
+                lastPingTime = Time.unscaledTime;
+                SendPing(hostEndPoint);
             }
         }
 

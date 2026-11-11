@@ -22,6 +22,7 @@ namespace FpsBase
             public int Nonce;
             public NetPlayer Player;
             public float LastHeard;
+            public int PingMs = -1;
             public readonly SortedList<int, PlayerInput> Inputs = new();
         }
 
@@ -33,6 +34,9 @@ namespace FpsBase
         private int lastSnapshotTick = int.MinValue;
         private string hostAddress;
         private UpnpMapping upnp;
+
+        // Each connected player's name and newest round trip in milliseconds, -1 before the first reply.
+        public IEnumerable<(string Name, int PingMs)> PeerPings => peers.Select(peer => (peer.Player.Health.DisplayName, peer.PingMs));
 
         public void Host()
         {
@@ -109,6 +113,19 @@ namespace FpsBase
                                 RemovePeer(leaving);
                             }
                             break;
+                        case MessageType.Ping:
+                            if (FindPeer(sender) != null)
+                            {
+                                ReplyToPing(packet, sender);
+                            }
+                            break;
+                        case MessageType.Pong:
+                            Peer pinged = FindPeer(sender);
+                            if (pinged != null)
+                            {
+                                pinged.PingMs = ReadRoundTrip(packet);
+                            }
+                            break;
                     }
                 }
                 catch (FormatException)
@@ -123,6 +140,15 @@ namespace FpsBase
                 if (now - peers[i].LastHeard > NetProtocol.TimeoutSeconds)
                 {
                     RemovePeer(peers[i]);
+                }
+            }
+
+            if (now - lastPingTime >= NetProtocol.PingInterval)
+            {
+                lastPingTime = now;
+                foreach (Peer target in peers)
+                {
+                    SendPing(target.EndPoint);
                 }
             }
         }

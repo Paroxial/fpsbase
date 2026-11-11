@@ -76,6 +76,7 @@ namespace FpsBase
         private NetMode mode;
         private string status;
         private double shownTime;
+        private float lastPingTime;
 
         public static NetSession Instance { get; private set; }
 
@@ -309,6 +310,29 @@ namespace FpsBase
                     : $"Network Unavailable: {exception.SocketErrorCode}";
                 return false;
             }
+        }
+
+        // Echoed back untouched, so the sender keeps no record of pings in flight.
+        private static int ClockMilliseconds => (int)(Time.realtimeSinceStartupAsDouble * 1000.0);
+
+        private void SendPing(IPEndPoint target)
+        {
+            writer.Begin(MessageType.Ping);
+            writer.Write(ClockMilliseconds);
+            socket.Send(writer, target);
+        }
+
+        private void ReplyToPing(NetReader ping, IPEndPoint sender)
+        {
+            int stamp = ping.ReadInt();
+            writer.Begin(MessageType.Pong);
+            writer.Write(stamp);
+            socket.Send(writer, sender);
+        }
+
+        private static int ReadRoundTrip(NetReader pong)
+        {
+            return ClockMilliseconds - pong.ReadInt();
         }
 
         private NetPlayer RegisterPlayer(int id, PlayerMotor motor, bool isLocal)

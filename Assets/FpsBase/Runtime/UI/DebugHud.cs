@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -111,6 +112,11 @@ namespace FpsBase
             if (session != null && session.IsBusy)
             {
                 header += NetSession.IsClient ? $"\n{session.Status}, {session.Corrections} corrections" : $"\n{session.Status}";
+                string ping = PingLine(session);
+                if (ping != null)
+                {
+                    header += $"\n{ping}";
+                }
             }
             if (!Reflex.IsAvailable)
             {
@@ -127,6 +133,16 @@ namespace FpsBase
                 ? $"Sim to GPU {sample.SimulationToGpuEndMs:0.0} ms, GPU {sample.GpuRenderMs:0.0} ms"
                 : "Sim to GPU collecting samples";
             return $"{header}\n{reflex}\n{latency}\n\n{ItemHints}\nF1 to Cycle Reflex Mode\n{cursorHint}";
+        }
+
+        private static string PingLine(NetSession session)
+        {
+            if (NetSession.IsClient)
+            {
+                return session.PingMs >= 0 ? $"Ping: {session.PingMs} ms" : null;
+            }
+            string[] pings = session.PeerPings.Where(peer => peer.PingMs >= 0).Select(peer => $"{peer.Name} {peer.PingMs} ms").ToArray();
+            return pings.Length > 0 ? "Ping: " + string.Join(", ", pings) : null;
         }
 
         private static ReflexMode NextMode(ReflexMode mode)

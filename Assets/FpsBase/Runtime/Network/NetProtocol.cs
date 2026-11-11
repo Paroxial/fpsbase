@@ -9,6 +9,8 @@ namespace FpsBase
         Bye,
         Probe,
         ProbeReply,
+        Ping,
+        Pong,
     }
 
     public enum CommandType : byte
@@ -43,6 +45,8 @@ namespace FpsBase
         // "FBS2": filters stray datagrams and peers running another protocol version.
         public const int Magic = 0x32534246;
         public const float TimeoutSeconds = 5f;
+        // Host and client each measure the round trip this often, from a Ping the other echoes as a Pong.
+        public const float PingInterval = 1f;
         // Each input packet repeats this many recent ticks, so a lost packet costs no input.
         public const int InputRedundancy = 8;
         // Remote entities render this far behind the newest snapshot. One tick leaves no margin: a
