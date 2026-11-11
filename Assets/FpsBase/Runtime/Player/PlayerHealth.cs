@@ -10,8 +10,8 @@ namespace FpsBase
         private Vector3 spawnPosition;
         private string displayName;
 
-        // The host names remote players from their Hello. Only the local player falls back to the
-        // saved name, so on a client the remote players' names here are meaningless.
+        // The local player falls back to the saved name. Remote players are named from their Hello
+        // on the host, and from the host's scoreboard on a client.
         public string DisplayName
         {
             get => displayName ?? PlayerName.Value;

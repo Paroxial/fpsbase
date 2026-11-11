@@ -52,6 +52,7 @@ The workflow needs three repository secrets (**Settings > Secrets and variables 
 | E | Pick up the item in reach, or drop the held one |
 | F1 | Cycle Reflex: Off > On > On + Boost |
 | F2 | Toggle the debug overlay: collider wireframes, shot rays and a log of what each shot hit |
+| Tab (hold) | Show the scoreboard: kills, deaths and ping for each player in the session |
 | Esc | Open / close the pause menu (sensitivity, volume, FPS limit, Resume, Quit) |
 | Left-Click | Recapture the cursor after alt-tab |
 
@@ -191,6 +192,9 @@ uses no networking package.
   collider and never takes shots. On spawn, `PlayerLook` fits a trigger `Hitbox` to each model
   part (box, sphere or capsule, matching its primitive), so shots land exactly on what is drawn:
   4x on the skull and visor, 1x everywhere else.
+- **Scoreboard.** The host counts every player's kills and deaths, crediting the same killer the
+  kill feed names, and measures each client's ping with a Ping/Pong once a second. It sends the
+  scoreboard to every client once a second, and right away after a join, a leave or a death.
 - **Inventory.** Slot selection takes effect on the client at once and is sent to the host. Pickups
   and drops are requests, and the result arrives in a snapshot. Commands repeat until the host
   acknowledges them, so none is lost or applied twice.

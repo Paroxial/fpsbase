@@ -25,6 +25,10 @@ namespace FpsBase
         public PlayerLook Look;
         public PlayerInventory Inventory;
         public PlayerHealth Health;
+        // Counted by the host; clients take them, and every player's ping, from its scoreboard.
+        public int Kills;
+        public int Deaths;
+        public int PingMs = -1;
         // Host: the last input tick simulated and command applied, echoed so the client can
         // reconcile and stop resending.
         public int LastInputTick = int.MinValue;
@@ -49,6 +53,7 @@ namespace FpsBase
     [DefaultExecutionOrder(-200)]
     public partial class NetSession : MonoBehaviour
     {
+        public const int HostPlayerId = 0;
         private const string AddressKey = "FpsBase.JoinAddress";
         private const string CommandLineHost = "-host";
         private const string CommandLineJoin = "-join";
@@ -89,6 +94,8 @@ namespace FpsBase
         public bool IsBusy => socket != null;
 
         public string Status => mode == NetMode.Host ? HostStatus() : status;
+
+        public IEnumerable<NetPlayer> Players => players.Values;
 
         public string SavedAddress
         {
@@ -347,6 +354,7 @@ namespace FpsBase
                 Health = motor.Health,
             };
             players[id] = player;
+            player.Health.Died += _ => CountDeath(player);
 
             InventoryItem[] starting = player.Inventory.StartingItems;
             for (int i = 0; i < starting.Length && i < NetProtocol.ItemsPerPlayer; i++)
@@ -357,6 +365,25 @@ namespace FpsBase
                 }
             }
             return player;
+        }
+
+        // Died fires only where damage is applied, so only the host counts. Credits the killer the
+        // same way the kill feed names one.
+        private void CountDeath(NetPlayer victim)
+        {
+            victim.Deaths++;
+            if (victim.Health.LastAttacker is PlayerHealth shooter && shooter != victim.Health)
+            {
+                foreach (NetPlayer player in players.Values)
+                {
+                    if (player.Health == shooter)
+                    {
+                        player.Kills++;
+                        break;
+                    }
+                }
+            }
+            scoresChanged = true;
         }
 
         private void RegisterItem(int id, InventoryItem item)
@@ -390,7 +417,10 @@ namespace FpsBase
             instance.GetComponent<PlayerLook>().ShowModel();
 
             instance.transform.SetParent(null, true);
-            return RegisterPlayer(id, motor, false);
+            NetPlayer player = RegisterPlayer(id, motor, false);
+            // Replaced by the name from Hello on the host, and from the scoreboard on a client.
+            player.Health.DisplayName = $"Player {id}";
+            return player;
         }
 
         private void RemovePlayer(int id)

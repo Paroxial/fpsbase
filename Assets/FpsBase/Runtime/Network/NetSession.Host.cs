@@ -22,7 +22,6 @@ namespace FpsBase
             public int Nonce;
             public NetPlayer Player;
             public float LastHeard;
-            public int PingMs = -1;
             public readonly SortedList<int, PlayerInput> Inputs = new();
         }
 
@@ -34,9 +33,8 @@ namespace FpsBase
         private int lastSnapshotTick = int.MinValue;
         private string hostAddress;
         private UpnpMapping upnp;
-
-        // Each connected player's name and newest round trip in milliseconds, -1 before the first reply.
-        public IEnumerable<(string Name, int PingMs)> PeerPings => peers.Select(peer => (peer.Player.Health.DisplayName, peer.PingMs));
+        // Set by a join, a leave or a death, so clients see the change without waiting for the next ping.
+        private bool scoresChanged;
 
         public void Host()
         {
@@ -52,7 +50,7 @@ namespace FpsBase
             Time.timeScale = 1f;
             // A session must keep ticking when its window loses focus, or everyone else stalls.
             Application.runInBackground = true;
-            RegisterPlayer(0, localPlayer, true);
+            RegisterPlayer(HostPlayerId, localPlayer, true);
         }
 
         // Called by the host's own weapons, so clients hear and see the host's shots.
@@ -123,7 +121,7 @@ namespace FpsBase
                             Peer pinged = FindPeer(sender);
                             if (pinged != null)
                             {
-                                pinged.PingMs = ReadRoundTrip(packet);
+                                pinged.Player.PingMs = ReadRoundTrip(packet);
                             }
                             break;
                     }
@@ -150,6 +148,31 @@ namespace FpsBase
                 {
                     SendPing(target.EndPoint);
                 }
+                // Also carries the pings measured since, and stands in for a lost update.
+                scoresChanged = true;
+            }
+            if (scoresChanged)
+            {
+                scoresChanged = false;
+                SendScores();
+            }
+        }
+
+        private void SendScores()
+        {
+            writer.Begin(MessageType.Scores);
+            writer.Write((byte)players.Count);
+            foreach (NetPlayer player in players.Values)
+            {
+                writer.Write(player.Id);
+                writer.Write(player.Health.DisplayName);
+                writer.Write(player.Kills);
+                writer.Write(player.Deaths);
+                writer.Write(player.PingMs);
+            }
+            foreach (Peer peer in peers)
+            {
+                socket.Send(writer, peer.EndPoint);
             }
         }
 
@@ -173,6 +196,7 @@ namespace FpsBase
                 PlayerHealth health = peer.Player.Health;
                 health.DisplayName = PlayerName.Clean(name, $"Player {peer.Player.Id}");
                 EventFeed.ReportJoin(health.DisplayName);
+                scoresChanged = true;
             }
             peer.LastHeard = Time.unscaledTime;
 
@@ -434,6 +458,7 @@ namespace FpsBase
         {
             peers.Remove(peer);
             RemovePlayer(peer.Player.Id);
+            scoresChanged = true;
         }
 
         private static string LocalAddress()

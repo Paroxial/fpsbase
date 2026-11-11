@@ -208,6 +208,12 @@ namespace FpsBase
                         case MessageType.Pong:
                             PingMs = ReadRoundTrip(packet);
                             break;
+                        case MessageType.Scores:
+                            if (!connecting)
+                            {
+                                ReceiveScores(packet);
+                            }
+                            break;
                     }
                 }
                 catch (FormatException)
@@ -580,6 +586,32 @@ namespace FpsBase
             return (a.Position - b.Position).sqrMagnitude <= PositionTolerance * PositionTolerance &&
                    (a.Velocity - b.Velocity).sqrMagnitude <= VelocityTolerance * VelocityTolerance &&
                    a.Grounded == b.Grounded;
+        }
+
+        // Players the snapshots haven't spawned yet are picked up by the next update.
+        private void ReceiveScores(NetReader packet)
+        {
+            int count = packet.ReadByte();
+            for (int i = 0; i < count; i++)
+            {
+                int id = packet.ReadInt();
+                string name = packet.ReadString();
+                int kills = packet.ReadInt();
+                int deaths = packet.ReadInt();
+                int ping = packet.ReadInt();
+                if (!players.TryGetValue(id, out NetPlayer player))
+                {
+                    continue;
+                }
+                if (!player.IsLocal)
+                {
+                    // The scoreboard renders rich text, so a modified host can't restyle it.
+                    player.Health.DisplayName = PlayerName.Clean(name, $"Player {id}");
+                }
+                player.Kills = kills;
+                player.Deaths = deaths;
+                player.PingMs = ping;
+            }
         }
 
         private void PlayEvent(NetEvent netEvent)

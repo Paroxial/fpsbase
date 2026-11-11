@@ -32,6 +32,7 @@ namespace FpsBase
             {
                 scopeOverlay = ScopeOverlay.Create(transform);
             }
+            Scoreboard.Create(transform, statsText.font);
         }
 
         private void OnEnable()
@@ -141,7 +142,8 @@ namespace FpsBase
             {
                 return session.PingMs >= 0 ? $"Ping: {session.PingMs} ms" : null;
             }
-            string[] pings = session.PeerPings.Where(peer => peer.PingMs >= 0).Select(peer => $"{peer.Name} {peer.PingMs} ms").ToArray();
+            string[] pings = session.Players.Where(player => !player.IsLocal && player.PingMs >= 0)
+                .Select(player => $"{player.Health.DisplayName} {player.PingMs} ms").ToArray();
             return pings.Length > 0 ? "Ping: " + string.Join(", ", pings) : null;
         }
 

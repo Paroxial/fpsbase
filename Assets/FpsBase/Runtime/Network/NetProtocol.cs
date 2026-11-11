@@ -11,6 +11,7 @@ namespace FpsBase
         ProbeReply,
         Ping,
         Pong,
+        Scores,
     }
 
     public enum CommandType : byte
