@@ -52,6 +52,7 @@ The workflow needs three repository secrets (**Settings > Secrets and variables 
 | E | Pick up the item in reach, or drop the held one |
 | F1 | Cycle Reflex: Off > On > On + Boost |
 | F2 | Toggle the debug overlay: collider wireframes, shot rays and a log of what each shot hit |
+| F11 | Toggle fullscreen |
 | Tab (hold) | Show the scoreboard: kills, deaths and ping for each player in the session |
 | Esc | Open / close the pause menu (sensitivity, volume, FPS limit, Resume, Quit) |
 | Left-Click | Recapture the cursor after alt-tab |

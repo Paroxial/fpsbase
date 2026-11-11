@@ -101,7 +101,15 @@ namespace FpsBase
             }
 
             Keyboard keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
+            if (keyboard == null)
+            {
+                return;
+            }
+            if (keyboard.f11Key.wasPressedThisFrame)
+            {
+                ToggleFullscreen();
+            }
+            if (!keyboard.escapeKey.wasPressedThisFrame)
             {
                 return;
             }
@@ -156,9 +164,21 @@ namespace FpsBase
             }
         }
 
+        // Borderless, not exclusive: with Direct3D 12's flip-model swap chain, Windows flips a
+        // borderless fullscreen window straight to the display, as fast as exclusive mode.
         private static void SetFullscreen(bool fullscreen)
         {
             Screen.fullScreenMode = fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
+        }
+
+        private void ToggleFullscreen()
+        {
+            bool fullscreen = !Screen.fullScreen;
+            SetFullscreen(fullscreen);
+            if (fullscreenToggle != null)
+            {
+                fullscreenToggle.SetIsOnWithoutNotify(fullscreen);
+            }
         }
 
         private void SetSensitivity(float value)
