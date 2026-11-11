@@ -81,8 +81,6 @@ namespace FpsBase
 
         public PlayerHealth Health { get; private set; }
 
-        public CapsuleCollider BodyHitbox { get; private set; }
-
         // Holds everything visible, placed at the interpolated position each frame.
         public Transform View => view;
 
@@ -160,16 +158,6 @@ namespace FpsBase
             if (Health == null)
             {
                 Health = gameObject.AddComponent<PlayerHealth>();
-            }
-            if (remote)
-            {
-                var body = new GameObject("Body Hitbox") { layer = gameObject.layer };
-                body.transform.SetParent(view, false);
-                BodyHitbox = body.AddComponent<CapsuleCollider>();
-                BodyHitbox.isTrigger = true;
-                BodyHitbox.center = controller.center;
-                BodyHitbox.height = controller.height;
-                BodyHitbox.radius = controller.radius;
             }
         }
 

@@ -131,68 +131,33 @@ namespace FpsBase
             RaycastHit[] hits = Physics.RaycastAll(origin, direction, range, hitMask, QueryTriggerInteraction.Collide);
             Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-            RaycastHit? capsuleHit = null;
-            Transform capsuleOwner = null;
             foreach (RaycastHit hit in hits)
             {
                 Collider collider = hit.collider;
-                if (look != null && collider.transform.IsChildOf(look.transform))
+                // Players take shots only on the hitboxes fitted to their model, never on the
+                // movement capsule around it, and the shooter never hits their own body.
+                if (collider is CharacterController || (look != null && collider.transform.IsChildOf(look.transform)))
                 {
                     continue;
                 }
-
                 bool hasHitbox = collider.TryGetComponent(out Hitbox hitbox);
-                Transform bodyOwner = null;
-                if (collider is CharacterController)
-                {
-                    if (collider.TryGetComponent(out PlayerMotor motor) && motor.BodyHitbox != null)
-                    {
-                        continue;
-                    }
-                    bodyOwner = collider.transform;
-                }
-                else if (collider is CapsuleCollider && collider.GetComponentInParent<PlayerMotor>() is PlayerMotor owner &&
-                         owner.BodyHitbox == collider)
-                {
-                    bodyOwner = owner.transform;
-                }
-
-                if (collider.isTrigger && !hasHitbox && bodyOwner == null)
+                if (collider.isTrigger && !hasHitbox)
                 {
                     continue;
                 }
-
-                // Only a hit zone on the same player can take precedence over the capsule.
-                // Stop at the next blocker so a hit zone behind cover cannot override it.
-                if (capsuleHit.HasValue && (!hasHitbox || !collider.transform.IsChildOf(capsuleOwner)))
-                {
-                    break;
-                }
-                if (!hasHitbox && bodyOwner != null)
-                {
-                    capsuleHit = hit;
-                    capsuleOwner = bodyOwner;
-                    continue;
-                }
-
-                return MakeShotResult(origin, hit, hasHitbox ? hitbox.DamageMultiplier : 1f, capsuleHit?.collider);
-            }
-
-            if (capsuleHit.HasValue)
-            {
-                return MakeShotResult(origin, capsuleHit.Value, 1f);
+                return MakeShotResult(origin, hit, hasHitbox ? hitbox.DamageMultiplier : 1f);
             }
 
             Vector3 end = origin + direction * range;
-            DebugOverlay.RecordShot(origin, end, null, null, 0f, 0f);
+            DebugOverlay.RecordShot(origin, end, null, 0f, 0f);
             return new ShotResult { Point = end };
         }
 
-        private ShotResult MakeShotResult(Vector3 origin, RaycastHit hit, float multiplier, Collider first = null)
+        private ShotResult MakeShotResult(Vector3 origin, RaycastHit hit, float multiplier)
         {
             Collider collider = hit.collider;
             float hitDamage = damage * multiplier;
-            DebugOverlay.RecordShot(origin, hit.point, first != null ? first : collider, collider, multiplier, hitDamage);
+            DebugOverlay.RecordShot(origin, hit.point, collider, multiplier, hitDamage);
             return new ShotResult { Hit = true, Point = hit.point, Normal = hit.normal, Collider = collider, Damage = hitDamage };
         }
 

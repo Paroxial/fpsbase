@@ -589,7 +589,8 @@ namespace FpsBase
             return (body, head);
         }
 
-        // Collider-free like the weapon parts, but casting shadows. The player's capsule is its collider.
+        // Collider-free like the weapon parts, but casting shadows. Remote players fit a trigger
+        // hitbox to each part at runtime (PlayerLook).
         private static void AddBodyPart(PrimitiveType type, string name, Transform parent, Vector3 position, Vector3 scale, Material material)
         {
             GameObject part = CreatePrimitive(type, name, parent, position, Quaternion.identity, scale, material);

@@ -201,6 +201,64 @@ namespace FpsBase
             shownPosition = cameraTransform.position;
             shownTime = Time.timeAsDouble;
             RenderAim();
+            if (remote)
+            {
+                AddModelHitboxes();
+            }
+        }
+
+        // Fits a trigger hitbox to every part of the model that lacks one, so shots land on exactly
+        // what is drawn. Head parts deal the skull's multiplier.
+        private void AddModelHitboxes()
+        {
+            if (bodyModel != null)
+            {
+                AddPartHitboxes(bodyModel.gameObject, 1f);
+            }
+            if (headModel != null)
+            {
+                Hitbox skull = headModel.GetComponentInChildren<Hitbox>(true);
+                AddPartHitboxes(headModel, skull != null ? skull.DamageMultiplier : 1f);
+            }
+        }
+
+        private static void AddPartHitboxes(GameObject model, float damageMultiplier)
+        {
+            foreach (MeshFilter part in model.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (part.sharedMesh == null || part.TryGetComponent(out Collider _))
+                {
+                    continue;
+                }
+                AddFittedCollider(part.gameObject, part.sharedMesh).isTrigger = true;
+                part.gameObject.AddComponent<Hitbox>().DamageMultiplier = damageMultiplier;
+            }
+        }
+
+        // Matches the primitive the part was built from. Any other mesh gets its bounding box.
+        private static Collider AddFittedCollider(GameObject part, Mesh mesh)
+        {
+            Bounds bounds = mesh.bounds;
+            switch (mesh.name)
+            {
+                case "Sphere":
+                    var sphere = part.AddComponent<SphereCollider>();
+                    sphere.center = bounds.center;
+                    sphere.radius = bounds.extents.x;
+                    return sphere;
+                case "Capsule":
+                case "Cylinder":
+                    var capsule = part.AddComponent<CapsuleCollider>();
+                    capsule.center = bounds.center;
+                    capsule.radius = bounds.extents.x;
+                    capsule.height = bounds.size.y;
+                    return capsule;
+                default:
+                    var box = part.AddComponent<BoxCollider>();
+                    box.center = bounds.center;
+                    box.size = bounds.size;
+                    return box;
+            }
         }
 
         private void OnEnable()

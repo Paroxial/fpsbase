@@ -9,6 +9,10 @@ namespace FpsBase
     {
         [SerializeField] private float damageMultiplier = 1f;
 
-        public float DamageMultiplier => damageMultiplier;
+        public float DamageMultiplier
+        {
+            get => damageMultiplier;
+            set => damageMultiplier = value;
+        }
     }
 }

@@ -46,9 +46,7 @@ namespace FpsBase
 
         public static bool Enabled { get; private set; }
 
-        // Shows when a player's hit zone took precedence over its movement capsule.
-        public static void RecordShot(Vector3 origin, Vector3 point, Collider first, Collider final, float multiplier,
-            float damage)
+        public static void RecordShot(Vector3 origin, Vector3 point, Collider collider, float multiplier, float damage)
         {
             if (!Enabled)
             {
@@ -56,12 +54,11 @@ namespace FpsBase
             }
 
             shotCount++;
-            bool hit = final != null;
-            bool damaging = hit && final.GetComponentInParent<Damageable>() != null;
-            string label = hit ? $"{final.name} x{multiplier:0.##} {damage:0.#}" : "miss";
+            bool hit = collider != null;
+            bool damaging = hit && collider.GetComponentInParent<Damageable>() != null;
+            string label = hit ? $"{collider.name} x{multiplier:0.##} {damage:0.#}" : "miss";
             string detail = hit
-                ? $"#{shotCount} {PathOf(final)} x{multiplier:0.##} = {damage:0.#} dmg at {Vector3.Distance(origin, point):0.0} m" +
-                  (first != final ? $", via {PathOf(first)}" : "") +
+                ? $"#{shotCount} {PathOf(collider)} x{multiplier:0.##} = {damage:0.#} dmg at {Vector3.Distance(origin, point):0.0} m" +
                   (damaging ? "" : ", no Damageable")
                 : $"#{shotCount} miss";
             Shots.Add(new Shot { Time = Time.unscaledTime, Origin = origin, Point = point, Hit = hit, Damaging = damaging, Label = label, Detail = detail });
@@ -155,15 +152,22 @@ namespace FpsBase
         private void DrawWorld()
         {
             lineMaterial.SetPass(0);
-            GL.PushMatrix();
-            GL.LoadPixelMatrix();
+            // Keeps IMGUI's own top-left pixel space, the one the labels use. GL.LoadPixelMatrix would
+            // copy the last camera's render target, which URP on Direct3D leaves flipped vertically.
             GL.Begin(GL.LINES);
 
             Vector3 eye = viewCamera.transform.position;
+            PlayerMotor viewer = viewCamera.GetComponentInParent<PlayerMotor>();
             foreach (Collider collider in colliders)
             {
                 if (collider == null || !collider.enabled || !collider.gameObject.activeInHierarchy ||
                     (collider.bounds.center - eye).sqrMagnitude > DrawDistance * DrawDistance)
+                {
+                    continue;
+                }
+                // The viewer's own capsule surrounds the camera, so its clipped edges would sweep
+                // across the screen with every turn of the mouse.
+                if (viewer != null && collider.transform.IsChildOf(viewer.transform))
                 {
                     continue;
                 }
@@ -182,7 +186,6 @@ namespace FpsBase
             }
 
             GL.End();
-            GL.PopMatrix();
         }
 
         private void DrawText()
@@ -374,8 +377,8 @@ namespace FpsBase
 
             Vector3 a = viewCamera.WorldToScreenPoint(from);
             Vector3 b = viewCamera.WorldToScreenPoint(to);
-            GL.Vertex3(a.x, a.y, 0f);
-            GL.Vertex3(b.x, b.y, 0f);
+            GL.Vertex3(a.x, Screen.height - a.y, 0f);
+            GL.Vertex3(b.x, Screen.height - b.y, 0f);
         }
 
         private static string PathOf(Collider collider)

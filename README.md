@@ -137,12 +137,12 @@ The HUD shows horizontal speed, so you can watch strafe gains as they happen.
   and land sounds. All of them play through one 2D `AudioSource` on the camera.
   `Assets/FpsBase/Audio` holds synthesized placeholders. To use real sounds, replace those files under
   the same names. Extra variants such as `Gunshot_4.wav` are picked up on the next Rebuild Sandbox.
-- **Debug overlay** (`DebugOverlay`, F2). Draws every collider within 80 m as a wireframe over the
-  scene, colored by role: red hit zones (`Hitbox`), yellow triggers, cyan player capsules, orange
-  rigidbodies, green static geometry. Each of your last 12 shots shows its ray and a label where it
-  landed. The log at the top right shows which collider counted, the multiplier and the damage.
-  On the host, the log also shows each remote shot as the host applied
-  it. The overlay creates itself at startup, so any scene gets it.
+- **Debug overlay** (`DebugOverlay`, F2). Draws every collider within 80 m, except your own
+  player's, as a wireframe over the scene, colored by role: red hit zones (`Hitbox`), yellow
+  triggers, cyan player capsules, orange rigidbodies, green static geometry. Each of your last 12
+  shots shows its ray and a label where it landed. The log at the top right shows which collider
+  counted, the multiplier and the damage. On the host, the log also shows each remote shot as the
+  host applied it. The overlay creates itself at startup, so any scene gets it.
 - **Weapon models.** The guns are built from primitives under each prefab's `Model` child. To use
   a real model, replace those children with your mesh and refit the root BoxCollider. Keep the
   model itself collider-free. The root collider is off while the gun is held, so it never blocks
@@ -188,9 +188,9 @@ uses no networking package.
 - **Player models.** Each player prefab carries a primitive humanoid (`Body Model` under `View`,
   `Head Model` under the camera), inactive by default. Remote players switch it on. The body turns
   with the player's yaw, and the head follows the aim. The movement capsule stays the only solid
-  collider. Shots use a separate body capsule on the interpolated view and a head sphere with a
-  4x `Hitbox`. A shot can hit the head directly or through the same player's body hitbox. Cover
-  still blocks the head behind it.
+  collider and never takes shots. On spawn, `PlayerLook` fits a trigger `Hitbox` to each model
+  part (box, sphere or capsule, matching its primitive), so shots land exactly on what is drawn:
+  4x on the skull and visor, 1x everywhere else.
 - **Inventory.** Slot selection takes effect on the client at once and is sent to the host. Pickups
   and drops are requests, and the result arrives in a snapshot. Commands repeat until the host
   acknowledges them, so none is lost or applied twice.
